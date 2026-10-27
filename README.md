@@ -149,3 +149,7 @@ Report tables and figures in `reports/` come from the backtest and test evaluati
 ## Data source
 
 NYC Open Data, [311 Service Requests from 2020 to Present](https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2020-to-Present/erm2-nwe9) (dataset `erm2-nwe9`). Use is subject to the [NYC Open Data Terms of Use](https://www.nyc.gov/html/data/terms.html). Community district boundaries are from NYC Department of City Planning.
+
+## License
+
+Code is released under the [MIT License](LICENSE). The 311 data belongs to the City of New York and is used under the NYC Open Data terms of use.
