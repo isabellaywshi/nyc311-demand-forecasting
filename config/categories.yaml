@@ -1,0 +1,37 @@
+targets:
+  noise:
+    agency: "NYPD / DEP"
+    prefixes: ["Noise"]
+    exact: []
+  heat_hot_water:
+    agency: "HPD"
+    prefixes: []
+    exact: ["HEAT/HOT WATER"]
+  illegal_parking:
+    agency: "NYPD"
+    prefixes: []
+    exact: ["Illegal Parking", "Blocked Driveway", "Abandoned Vehicle"]
+  sanitation:
+    agency: "DSNY"
+    prefixes: []
+    exact:
+      - "Dirty Condition"
+      - "Missed Collection"
+      - "Illegal Dumping"
+      - "Residential Disposal Complaint"
+      - "Commercial Disposal Complaint"
+      - "Litter Basket Request"
+      - "Overflowing Litter Baskets"
+      - "Graffiti"
+      - "Sanitation Condition"
+      - "Derelict Vehicles"
+  street_conditions:
+    agency: "DOT"
+    prefixes: []
+    exact:
+      - "Street Condition"
+      - "Street Light Condition"
+      - "Traffic Signal Condition"
+      - "Sidewalk Condition"
+      - "Curb Condition"
+      - "Broken Parking Meter"

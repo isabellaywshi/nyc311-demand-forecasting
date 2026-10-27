@@ -1,0 +1,18 @@
+start_date: 2020-01-01
+horizons: [1, 2, 3, 4]
+validation_start: 2024-11-04
+test_start: 2025-11-03
+n_origins: 13
+origin_step_weeks: 4
+surge_threshold: 1.25
+surge_min_norm: 5
+raw_dir: data/raw
+processed_dir: data/processed
+reports_dir: reports
+app_data_dir: app/data
+lgbm_params:
+  n_estimators: 500
+  learning_rate: 0.05
+  num_leaves: 31
+  min_child_samples: 20
+  tweedie_variance_power: 1.2
