@@ -70,13 +70,26 @@ def _log_mlflow(out: pd.DataFrame, period: str) -> None:
 
     import mlflow
 
-    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")  # mlruns/ file store (spec)
-    mlflow.set_tracking_uri("file:./mlruns")
-    with mlflow.start_run(run_name=f"backtest_{period}"):
-        for model, g in out.groupby("model"):
-            g = g.dropna(subset=["y", "yhat"])
-            with mlflow.start_run(run_name=str(model), nested=True):
-                mlflow.set_tag("period", period)
-                mlflow.log_metric("wape", wape(g["y"], g["yhat"]))
-                gm = g.dropna(subset=["y_naive"])
-                mlflow.log_metric("mase", mase(gm["y"], gm["yhat"], gm["y_naive"]))
+    key = "MLFLOW_ALLOW_FILE_STORE"
+    prior_env = os.environ.get(key)
+    prior_uri = mlflow.get_tracking_uri()
+    uri = os.environ.get("MLFLOW_TRACKING_URI") or (
+        (Path(__file__).resolve().parents[2] / "mlruns").as_uri()
+    )
+    os.environ[key] = "true"  # mlruns/ file store (spec); scoped to this call
+    try:
+        mlflow.set_tracking_uri(uri)
+        with mlflow.start_run(run_name=f"backtest_{period}"):
+            for model, g in out.groupby("model"):
+                g = g.dropna(subset=["y", "yhat"])
+                with mlflow.start_run(run_name=str(model), nested=True):
+                    mlflow.set_tag("period", period)
+                    mlflow.log_metric("wape", wape(g["y"], g["yhat"]))
+                    gm = g.dropna(subset=["y_naive"])
+                    mlflow.log_metric("mase", mase(gm["y"], gm["yhat"], gm["y_naive"]))
+    finally:
+        mlflow.set_tracking_uri(prior_uri)
+        if prior_env is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = prior_env

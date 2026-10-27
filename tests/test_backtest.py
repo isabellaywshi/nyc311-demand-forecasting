@@ -51,6 +51,11 @@ def test_backtest_columns_and_no_future_access(panel_factory):
     for c in ["y", "norm", "surge_actual", "surge_alert", "y_naive", "period", "yhat_p10"]:
         assert c in out.columns
     assert (out["period"] == "val").all()
+    n_series = p[["borocd", "target"]].drop_duplicates().shape[0]
+    # spy emits h=1 only; seasonal_naive emits both requested horizons
+    assert len(out) == n_series * len(origins) * (1 + 2)
+    key = ["model", "borocd", "target", "origin", "horizon"]
+    assert not out.duplicated(key).any()
 
 
 def test_backtest_joins_actuals_and_surge(panel_factory, tmp_path):
@@ -74,3 +79,26 @@ def test_backtest_joins_actuals_and_surge(panel_factory, tmp_path):
     assert (ra["y_naive"] == 50).all()
     assert (tmp_path / "predictions_val.parquet").exists()
     assert len(pd.read_parquet(tmp_path / "predictions_val.parquet")) == len(out)
+
+
+def test_log_mlflow_restores_env_and_uri(panel_factory, tmp_path, monkeypatch):
+    import os
+
+    import pytest
+
+    mlflow = pytest.importorskip("mlflow")
+    from nyc311.backtest import _log_mlflow
+
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", (tmp_path / "mlruns").as_uri())
+    monkeypatch.delenv("MLFLOW_ALLOW_FILE_STORE", raising=False)
+    before_uri = mlflow.get_tracking_uri()
+    p = panel_factory(lambda i, w, b, t: 50, START, 160)
+    origin = START + timedelta(weeks=110)
+    out = run_backtest([SeasonalNaive()], p, [origin], [1], "val", log_mlflow=False)
+    _log_mlflow(out, "val")
+    assert os.environ.get("MLFLOW_ALLOW_FILE_STORE") is None
+    assert mlflow.get_tracking_uri() == before_uri
+    assert (tmp_path / "mlruns").exists()
+    monkeypatch.setenv("MLFLOW_ALLOW_FILE_STORE", "false")
+    _log_mlflow(out, "val")
+    assert os.environ["MLFLOW_ALLOW_FILE_STORE"] == "false"
