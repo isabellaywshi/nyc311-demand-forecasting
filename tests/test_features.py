@@ -30,6 +30,7 @@ def synthetic_panel_with_zero_series():
 def test_leakage_guard(synthetic_panel):
     origin = START + timedelta(weeks=80)
     hs = [1, 2, 3, 4]
+    # with_label=False on purpose: the label is the one allowed use of post-origin data.
     a = build_features(synthetic_panel, [origin], hs, with_label=False)
     p2 = synthetic_panel.copy()
     p2.loc[p2["week_start"] > origin, "count"] *= 1000
@@ -61,7 +62,8 @@ def test_lag_and_same_week_last_year_values(synthetic_panel):
         assert row[f"lag_{k + 1}"] == pytest.approx(y[t_idx - k] / scale)
     assert row["same_week_last_year"] == pytest.approx(y[t_idx + 2 - 52] / scale)
     assert row["roll_mean_4"] == pytest.approx(y[t_idx - 3 : t_idx + 1].mean() / scale)
-    assert row["roll_mean_52"] == pytest.approx(1.0) or row["roll_mean_52"] > 0
+    assert row["roll_mean_13"] == pytest.approx(y[t_idx - 12 : t_idx + 1].mean() / scale)
+    assert row["roll_mean_52"] == pytest.approx(y[t_idx - 51 : t_idx + 1].mean() / scale)
     assert row["roll_std_13"] == pytest.approx(y[t_idx - 12 : t_idx + 1].std() / scale)
     assert row["label"] == pytest.approx(y[t_idx + 2] / scale)
     assert row["week_start"] == origin + timedelta(weeks=2)
@@ -105,3 +107,10 @@ def test_calendar_features(synthetic_panel):
     assert r["woy_cos"] == pytest.approx(np.cos(2 * np.pi / 52))
     assert r["month"] == 1
     assert r["n_holidays"] == 1  # New Year's Day
+
+
+def test_holiday_year_crossing_week_alone():
+    p = make_panel(lambda *a: 5, date(2024, 1, 1), 110, series=((101, "total"),))
+    f = build_features(p, [date(2025, 12, 22)], [1], with_label=False)
+    assert f["week_start"].iloc[0] == date(2025, 12, 29)
+    assert f["n_holidays"].iloc[0] == 1  # 2026-01-01 falls in the week

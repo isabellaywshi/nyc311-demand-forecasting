@@ -38,7 +38,7 @@ _COVID_END = date(2021, 6, 30)
 
 def _calendar(week_starts: list[date]) -> pd.DataFrame:
     """Calendar features for each (unique) target-week Monday."""
-    years = range(min(week_starts).year, max(week_starts).year + 1)
+    years = range(min(week_starts).year, (max(week_starts) + timedelta(days=6)).year + 1)
     hol = holidays.country_holidays("US", subdiv="NY", years=years)
     hol_dates = set(hol.keys())
     rows = []
