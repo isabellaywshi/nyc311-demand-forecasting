@@ -1,0 +1,50 @@
+name: Weekly refresh
+
+on:
+  schedule:
+    - cron: "0 10 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    env:
+      SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version-file: .python-version
+          enable-cache: true
+      - run: uv sync --frozen
+      # Unique key per run => always saves an updated cache; restore-keys picks
+      # up the most recent previous one, so only recent months are re-fetched.
+      - uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: raw-${{ github.run_id }}
+          restore-keys: |
+            raw-
+      - name: Refresh data and forecasts
+        run: uv run nyc311 refresh
+      - name: Commit refreshed app data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A app/data
+          if git diff --cached --quiet -- app/data; then
+            echo "no changes"
+          else
+            git commit -m "data: weekly refresh $(date +%F)"
+            git push
+          fi
