@@ -21,15 +21,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
         with:
-          python-version-file: .python-version
           enable-cache: true
       - run: uv sync --frozen
       # Unique key per run => always saves a new cache; restore-keys picks
       # up the most recent previous one, so only recent months are re-fetched.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6
         with:
           path: data/raw
           key: raw-${{ github.run_id }}
@@ -40,7 +39,7 @@ jobs:
           SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
         run: uv run --frozen nyc311 refresh
       # Save even if refresh failed or timed out, so partial downloads persist.
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@v6
         if: always()
         with:
           path: data/raw
