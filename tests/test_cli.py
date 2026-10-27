@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import yaml
 from typer.testing import CliRunner
 
@@ -5,7 +7,7 @@ from nyc311.cli import app
 
 
 def test_panel_command_writes_panel_and_reports_unmapped(raw_fixture, tmp_path, monkeypatch):
-    settings = yaml.safe_load(open("config/settings.yaml"))
+    settings = yaml.safe_load(Path("config/settings.yaml").open())
     settings["raw_dir"] = str(raw_fixture)
     settings["processed_dir"] = str(tmp_path / "processed")
     path = tmp_path / "settings.yaml"
