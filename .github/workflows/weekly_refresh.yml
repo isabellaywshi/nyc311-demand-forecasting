@@ -2,7 +2,9 @@ name: Weekly refresh
 
 on:
   schedule:
-    - cron: "0 10 * * 1"
+    # Tuesdays 18:00 UTC. The dataset loads with ~1-day lag, so by Tuesday afternoon
+    # Monday's records exist and the prior Mon-Sun week counts as complete.
+    - cron: "0 18 * * 2"
   workflow_dispatch:
 
 concurrency:

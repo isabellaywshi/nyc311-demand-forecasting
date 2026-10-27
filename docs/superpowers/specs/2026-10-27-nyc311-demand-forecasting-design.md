@@ -1,7 +1,7 @@
 # NYC 311 Service Demand Forecasting — Design Spec
 
 **Date:** 2026-10-27
-**Status:** Draft for review
+**Status:** Approved — implemented on feat/v1
 **Owner:** Isabella Shi
 
 ## 1. Purpose
@@ -104,7 +104,7 @@ There are six targets: `total` plus five categories, mapped in `config/categorie
 
 - SHAP `TreeExplainer` on the h=1 point model, using up to 20,000 training rows sampled at the final fit.
 - **Outputs:** mean |SHAP| per feature globally, per target, and per (borocd, target), keeping the top 5 features.
-- MLflow tracks to the local `mlruns/` folder (git-ignored), with one run per (model, period, origin) and a parent run per backtest.
+- MLflow tracks to the local `mlruns/` folder (git-ignored), with one run per (model, period) under a parent run per backtest.
 
 ## 7. Dashboard
 
@@ -129,7 +129,7 @@ There are six targets: `total` plus five categories, mapped in `config/categorie
 - **Ingest** is incremental. Months already completed (a file exists in `data/raw/` and the month ended more than 31 days before today) are skipped. The current and previous months are always re-pulled. Files are written to a temporary path and then atomically renamed. Requests retry on 429 or 5xx with exponential backoff, at most 5 attempts.
 - **GitHub Actions:**
   - `ci.yml` runs `ruff check` and `pytest` on push and PR.
-  - `weekly_refresh.yml` runs on cron `0 10 * * 1` (Mondays 10:00 UTC) plus `workflow_dispatch`. It runs `nyc311 refresh` and commits `app/data/` only if the step succeeds.
+  - `weekly_refresh.yml` runs on cron `0 18 * * 2` (Tuesdays 18:00 UTC; the dataset loads with ~1-day lag, so by Tuesday afternoon Monday's records exist and the prior Mon-Sun week counts as complete) plus `workflow_dispatch`. It runs `nyc311 refresh` and commits `app/data/` only if the step succeeds.
 - **Stretch:** an Airflow DAG in `dags/nyc311_weekly.py` with `BashOperator`s calling the same CLI commands, plus `dags/docker-compose.yml`.
 - **Environment:** `uv`, Python 3.12. `.env` is git-ignored and `.env.example` is committed. `data/` and `mlruns/` are git-ignored.
 

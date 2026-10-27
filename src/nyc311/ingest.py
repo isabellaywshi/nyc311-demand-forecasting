@@ -25,7 +25,7 @@ class SocrataClient:
         session: requests.Session | None = None,
         token: str | None = None,
         max_attempts: int = 5,
-        base_sleep: float = 1.0,
+        base_sleep: float = 5.0,
     ):
         self.session = session or requests.Session()
         self.token = token if token is not None else os.environ.get(TOKEN_ENV_VAR)

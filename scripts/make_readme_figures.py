@@ -26,7 +26,7 @@ def shap_global(top_n: int = 5) -> Path:
     labels = [LABELS.get(f, f) for f in g["feature"]]
     fig, ax = plt.subplots(figsize=(8, 3.6), dpi=150)
     ax.barh(labels, g["mean_abs_shap"], color="#2b6cb0")
-    ax.set_xlabel("Mean |SHAP value| (effect on scaled 1-week-ahead forecast)")
+    ax.set_xlabel("Mean |SHAP| (log scale of the normalised 1-week-ahead forecast)")
     ax.set_title("What the LightGBM model relies on most", loc="left", fontsize=12)
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)

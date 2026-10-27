@@ -92,8 +92,8 @@ st.plotly_chart(
     width="stretch",
 )
 st.caption(
-    "Color shows forecast demand relative to the seasonal norm (average of the same week in "
-    "prior years); red is above normal, blue below, grey means no seasonal norm is available for that area. "
+    "Color shows forecast demand relative to the seasonal norm (the average for the same week in "
+    "prior years, adjusted for the recent level); red is above normal, blue below, grey means no seasonal norm is available for that area. "
     "Click a district to select it."
 )
 
@@ -119,7 +119,7 @@ if st.button("Open district detail", key="home_open"):
 st.subheader("Surge watch")
 watch = lib.surge_watch(fc, target, horizon)
 st.caption(
-    f"Districts forecast at least 25% above their seasonal norm. {len(watch):,} of "
+    f"Districts forecast at least 25% above their seasonal norm (alerts need a norm of at least 5). {len(watch):,} of "
     f"{len(sel):,} districts are flagged."
 )
 if watch.empty:

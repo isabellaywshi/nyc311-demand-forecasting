@@ -58,7 +58,8 @@ st.markdown(
 st.header("What counts as a surge")
 st.markdown(
     "A district-week is flagged as a surge when forecast demand is **at least 25% above the "
-    "seasonal norm**, the average of the same week in prior years. "
+    "seasonal norm**, the average for the same week in prior years, adjusted for the recent level, "
+    "and the norm must be at least 5 requests. "
     f"On the test period, **{lib.fmt_ratio(prec)}** of alerts were real surges and "
     f"**{lib.fmt_ratio(rec)}** of real surges were caught."
 )

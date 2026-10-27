@@ -1,4 +1,4 @@
-"""Command-line entry point: `nyc311 ingest` and `nyc311 panel`."""
+"""Command-line entry point (`nyc311`): ingest, panel, backtest, evaluate-test, train, forecast, publish, refresh."""
 
 import itertools
 import os

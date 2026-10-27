@@ -18,6 +18,9 @@ dependencies = [
     "streamlit",
     "plotly",
     "geopandas",
+    "matplotlib",
+    "joblib",
+    "numpy",
 ]
 
 [project.scripts]

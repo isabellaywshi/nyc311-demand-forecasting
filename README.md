@@ -10,7 +10,7 @@ Four-week-ahead forecasts of weekly 311 request volume for every NYC community d
 
 NYC agencies staff for 311 demand that varies by neighborhood, request type and season. A district that is about to see far more heat and hot water complaints than usual needs attention before the calls arrive, not after. This project forecasts weekly request counts for 59 regular community districts (plus 12 special areas such as parks) across five request categories and the total, one to four weeks ahead, and flags districts expected to run well above their norm.
 
-The data is NYC Open Data's 311 Service Requests, refreshed weekly by a scheduled GitHub Actions job.
+The data is NYC Open Data's 311 Service Requests, refreshed weekly (Tuesdays 18:00 UTC) by a scheduled GitHub Actions job.
 
 ## Results
 
@@ -24,7 +24,7 @@ All numbers below are from the held-out test period: 12 forecast origins, every 
 | mstl | 0.1282 | 0.6786 | 0.7835 | 465.3751 |
 | **lgbm** | **0.1177** | **0.6231** | 0.8086 | 418.6240 |
 
-WAPE is total absolute error divided by total actual demand (lower is better). MASE scales error by the seasonal-naive forecast's error, so 1.0 means "no better than last year's same week". The global LightGBM model beats both baselines and both statistical models on WAPE and MASE, and its P10-P90 interval covers 80.9% of actuals against a nominal 80%. The model's hyperparameters were tuned on a separate validation period; the best grid setting scored a validation WAPE of 0.1166 (`validation_grid.csv`).
+WAPE is total absolute error divided by total actual demand (lower is better). MASE scales error by the seasonal-naive forecast's error, so 1.0 means "no better than last year's same week". The global LightGBM model beats both baselines and both statistical models on WAPE and MASE, and its P10-P90 interval covers 80.9% of actuals against a nominal 80%. The model's hyperparameters were tuned on a separate validation period; the best grid setting scored a validation WAPE of 0.1166 (`validation_grid.csv`). The `reports/validation_*` tables were produced with the default LightGBM parameters before tuning; the tuned validation score is in `reports/validation_grid.csv`.
 
 Accuracy falls as the horizon grows:
 
@@ -109,13 +109,14 @@ The model is not equally accurate everywhere. The Bronx (0.1890) has about twice
 
 ![Global SHAP importance](reports/figures/shap_global.png)
 
-Mean absolute SHAP values for the one-week-ahead LightGBM model show that the forecast is mostly driven by a district's own recent history: the 52-week average (0.340) and 4-week average (0.302) are well ahead of the next feature, request category (0.107). Only the top five features are shown. This is a statement about what the model uses, not about causes.
+Mean absolute SHAP values for the one-week-ahead LightGBM model (fit on data through 2026-10-19; the live app updates weekly) are in log scale of the normalised forecast, because the model uses a Tweedie log link. They show that the forecast is mostly driven by a district's own recent history: the 52-week average (0.340) and 4-week average (0.302) are well ahead of the next feature, request category (0.107). Only the top five features are shown. This is a statement about what the model uses, not about causes.
 
 ## Limitations and future work
 
 - **Reporting is not need.** 311 counts measure who calls, not who needs service. Use of 311 is uneven across neighborhoods, so a low count may reflect low reporting.
 - **Surge flags are relative to a norm built from prior years.** If a district has been growing, the norm lags and surges are over-counted. About a third of series-weeks in the test period (6,076 of 16,992) were flagged as actual surges, so "surge" here means "above a lagging seasonal norm", not "unusual".
 - **No weather inputs.** Heat and hot water and noise are weather-sensitive, and heat and hot water is the weakest category (WAPE 0.3427).
+- **Small test sample.** The test period has 12 forecast origins over one year, so the figures above carry real sampling uncertainty.
 - **Four-week intervals are too narrow** (75.0% coverage vs 80% nominal).
 - **Future work:** weather covariates; deep-learning models as a comparison; an orchestrator such as Airflow (an idea only; scheduling today is a GitHub Actions cron job); tuning the alert threshold, which is currently a fixed 1.25 times the norm.
 
@@ -137,12 +138,15 @@ SOCRATA_APP_TOKEN=your_token_here
 ```bash
 uv run nyc311 refresh                       # ingest, panel, train, forecast, publish
 uv run nyc311 backtest --period validation  # rolling-origin validation backtest
+uv run nyc311 evaluate-test                 # final test evaluation: run ONCE
 uv run streamlit run app/Home.py            # dashboard
 uv run pytest                               # tests
 uv run python scripts/make_readme_figures.py  # regenerate the SHAP figure
 ```
 
 On macOS, if `uv run nyc311` fails with `ModuleNotFoundError`, run `chflags nohidden .venv/lib/python3.12/site-packages/*.pth`.
+
+`evaluate-test` is meant to run once: it refuses if `reports/test_overall.csv` exists unless `--force`. After new data arrives, a forced re-run would add forecast origins and change the reported numbers.
 
 Report tables and figures in `reports/` come from the backtest and test evaluation commands; the numbers in this README are copied from `reports/test_*.md` and `reports/validation_grid.csv`.
 

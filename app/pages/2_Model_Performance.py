@@ -128,5 +128,5 @@ if not sg.empty:
     )
     st.caption(
         "Precision: share of alerts that were real surges. Recall: share of real surges that "
-        "were caught. The rule baseline flags a surge when last week was already high."
+        "were caught. The rule baseline flags a surge when the average of the last 4 weeks is already well above the norm."
     )
