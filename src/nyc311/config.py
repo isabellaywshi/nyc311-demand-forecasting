@@ -43,10 +43,10 @@ def load_settings(path: Path | None = None) -> Settings:
         path = Path(os.environ.get(SETTINGS_ENV_VAR) or DEFAULT_SETTINGS_PATH)
     raw = yaml.safe_load(Path(path).read_text())
     return Settings(
-        start_date=raw["start_date"],
+        start_date=date.fromisoformat(str(raw["start_date"])),
         horizons=list(raw["horizons"]),
-        validation_start=raw["validation_start"],
-        test_start=raw["test_start"],
+        validation_start=date.fromisoformat(str(raw["validation_start"])),
+        test_start=date.fromisoformat(str(raw["test_start"])),
         n_origins=int(raw["n_origins"]),
         origin_step_weeks=int(raw["origin_step_weeks"]),
         surge_threshold=float(raw["surge_threshold"]),

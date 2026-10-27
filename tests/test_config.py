@@ -1,3 +1,4 @@
+import subprocess
 from datetime import date
 from pathlib import Path
 
@@ -36,3 +37,12 @@ def test_load_categories():
     assert c.exact["broken parking meter"] == "street_conditions"
     assert ("noise", "noise") in c.prefixes
     assert c.agencies["sanitation"] == "DSNY"
+
+
+def _ignored(path: str) -> int:
+    return subprocess.run(["git", "check-ignore", "-q", path], check=False).returncode
+
+
+def test_app_data_not_ignored():
+    assert _ignored("app/data/forecasts.parquet") == 1
+    assert _ignored("data/raw/x.parquet") == 0
