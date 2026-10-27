@@ -31,3 +31,27 @@ def raw_fixture(tmp_path):
     city = daily.groupby("day", as_index=False)["n"].sum()
     city.to_parquet(tmp_path / "citywide_2024-01.parquet")
     return tmp_path
+
+
+def make_panel(weekly, start, n_weeks, series=((101, "total"),)):
+    """Synthetic complete panel. weekly(i, week_start, borocd, target) -> count for week index i."""
+    from datetime import timedelta
+
+    import pandas as pd
+
+    rows = []
+    for borocd, target in series:
+        for i in range(n_weeks):
+            ws = start + timedelta(weeks=i)
+            rows.append((ws, borocd, target, weekly(i, ws, borocd, target)))
+    df = pd.DataFrame(rows, columns=["week_start", "borocd", "target", "count"])
+    df["borocd"] = df["borocd"].astype("int16")
+    df["count"] = df["count"].astype("int32")
+    df["is_special_area"] = False
+    df["borough"] = "MANHATTAN"
+    return df
+
+
+@pytest.fixture
+def panel_factory():
+    return make_panel
