@@ -10,6 +10,8 @@ raw_dir: data/raw
 processed_dir: data/processed
 reports_dir: reports
 app_data_dir: app/data
+models_dir: data/models
+geojson_url: https://data.cityofnewyork.us/api/geospatial/5crt-au7u?method=export&format=GeoJSON
 lgbm_params:
   n_estimators: 500
   learning_rate: 0.1

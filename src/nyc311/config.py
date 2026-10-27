@@ -27,6 +27,8 @@ class Settings:
     reports_dir: Path
     app_data_dir: Path
     lgbm_params: dict
+    geojson_url: str = ""
+    models_dir: Path = Path("data/models")
 
 
 @dataclass(frozen=True)
@@ -56,6 +58,8 @@ def load_settings(path: Path | None = None) -> Settings:
         reports_dir=Path(raw["reports_dir"]),
         app_data_dir=Path(raw["app_data_dir"]),
         lgbm_params=dict(raw["lgbm_params"]),
+        geojson_url=str(raw.get("geojson_url", "")),
+        models_dir=Path(raw.get("models_dir", "data/models")),
     )
 
 

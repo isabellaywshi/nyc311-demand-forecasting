@@ -17,6 +17,9 @@ from nyc311.models.baselines import RecentAverage, SeasonalNaive
 from nyc311.models.lgbm import LGBMForecaster
 from nyc311.models.statistical import StatsForecaster
 from nyc311.panel import build_panel, validate_panel
+from nyc311.publish import forecast as run_forecast
+from nyc311.publish import publish as run_publish
+from nyc311.publish import train as run_train
 from nyc311.report import enrich, summarize, write_reports, write_test_summary
 
 app = typer.Typer(help="NYC 311 weekly demand forecasting pipeline.", no_args_is_help=True)
@@ -174,3 +177,42 @@ def evaluate_test_cmd(
     )  # fmt: skip
     write_test_summary(tables, Path(settings.reports_dir))
     typer.echo(tables["overall"].to_string(index=False))
+
+
+@app.command("train")
+def train_cmd() -> None:
+    """Fit the final LightGBM on the full panel and save it."""
+    path = run_train(load_settings())
+    typer.echo(f"Saved {path}.")
+
+
+@app.command("forecast")
+def forecast_cmd() -> None:
+    """Forecast the next 4 weeks for every series from the saved model."""
+    settings = load_settings()
+    fc = run_forecast(settings, load_categories())
+    typer.echo(f"Forecast origin {fc['origin'].iloc[0]}: {len(fc):,} rows, "
+               f"{int(fc['surge_alert'].sum())} surge alerts.")  # fmt: skip
+
+
+@app.command("publish")
+def publish_cmd() -> None:
+    """Write the dashboard data files into app/data."""
+    settings = load_settings()
+    run_publish(settings, load_categories())
+    typer.echo(f"Published to {settings.app_data_dir}.")
+
+
+@app.command("refresh")
+def refresh_cmd() -> None:
+    """ingest -> panel -> train -> forecast -> publish; stops non-zero at the first failure."""
+    for name, step in (
+        ("ingest", ingest_cmd), ("panel", panel_cmd), ("train", train_cmd),
+        ("forecast", forecast_cmd), ("publish", publish_cmd),
+    ):  # fmt: skip
+        typer.echo(f"== {name} ==")
+        try:
+            step(today=None) if step is ingest_cmd else step()
+        except Exception as exc:
+            typer.echo(f"refresh failed at {name}: {exc}", err=True)
+            raise typer.Exit(1) from exc
