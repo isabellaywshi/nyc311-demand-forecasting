@@ -18,8 +18,6 @@ jobs:
     timeout-minutes: 90
     permissions:
       contents: write
-    env:
-      SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -27,16 +25,24 @@ jobs:
           python-version-file: .python-version
           enable-cache: true
       - run: uv sync --frozen
-      # Unique key per run => always saves an updated cache; restore-keys picks
+      # Unique key per run => always saves a new cache; restore-keys picks
       # up the most recent previous one, so only recent months are re-fetched.
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         with:
           path: data/raw
           key: raw-${{ github.run_id }}
           restore-keys: |
             raw-
       - name: Refresh data and forecasts
-        run: uv run nyc311 refresh
+        env:
+          SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
+        run: uv run --frozen nyc311 refresh
+      # Save even if refresh failed or timed out, so partial downloads persist.
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: data/raw
+          key: raw-${{ github.run_id }}
       - name: Commit refreshed app data
         run: |
           git config user.name "github-actions[bot]"
@@ -46,5 +52,6 @@ jobs:
             echo "no changes"
           else
             git commit -m "data: weekly refresh $(date +%F)"
+            git pull --rebase
             git push
           fi
