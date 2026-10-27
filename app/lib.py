@@ -62,6 +62,9 @@ FEATURE_LABELS = {
     "target": "Category",
 }
 CHART_HEIGHT = 420
+DATA_START_YEAR = (
+    2020  # documented start of the NYC Open Data 311 pull (history.parquet is shorter)
+)
 
 
 def rgba(hex_color: str, alpha: float) -> str:
@@ -171,6 +174,24 @@ def surge_watch(forecasts: pd.DataFrame, target: str, horizon: int) -> pd.DataFr
         }
     )
     return out.reset_index(drop=True)
+
+
+def area_from_selection(state) -> int | None:
+    """District code from a plotly selection state (first selected point), else None."""
+    try:
+        points = state.selection.points
+    except AttributeError:
+        return None
+    if points and points[0].get("location") is not None:
+        return int(points[0]["location"])
+    return None
+
+
+def on_map_select(map_key: str = "home_map", area_key: str = "home_area") -> None:
+    """on_select callback: copy the clicked district into the district selectbox state."""
+    area = area_from_selection(st.session_state.get(map_key))
+    if area is not None:
+        st.session_state[area_key] = area
 
 
 def area_options(forecasts: pd.DataFrame) -> list[int]:

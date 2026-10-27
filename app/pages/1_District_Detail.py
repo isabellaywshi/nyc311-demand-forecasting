@@ -119,7 +119,6 @@ fig.add_trace(
     )
 )
 fig.update_layout(
-    template="plotly_white",
     height=lib.CHART_HEIGHT,
     hovermode="x unified",
     margin={"l": 0, "r": 0, "t": 10, "b": 0},
@@ -147,15 +146,13 @@ if cand.empty:
 if cand.empty:
     st.info("No driver summary is available.")
 else:
-    top = cand.sort_values("rank").head(5).copy()
-    top["label"] = top["feature"].map(lib.feature_label)
-    top = top.groupby("label", as_index=False, sort=False)["mean_abs_shap"].sum()
-    top = top.sort_values("mean_abs_shap")
+    top = cand.assign(label=cand["feature"].map(lib.feature_label))
+    top = top.groupby("label", as_index=False)["mean_abs_shap"].sum()
+    top = top.nlargest(5, "mean_abs_shap").sort_values("mean_abs_shap")
     bar = go.Figure(
         go.Bar(x=top["mean_abs_shap"], y=top["label"], orientation="h", marker_color=color)
     )
     bar.update_layout(
-        template="plotly_white",
         height=280,
         margin={"l": 0, "r": 0, "t": 10, "b": 0},
         xaxis_title="Average influence on the forecast",

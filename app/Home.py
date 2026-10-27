@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import lib
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 data = lib.setup_page("NYC 311 demand forecast")
@@ -34,15 +35,10 @@ week = sel["week_start"].iloc[0] if len(sel) else "n/a"
 st.subheader(f"{lib.target_label(target)}: week of {week}")
 
 
-def _on_map_select():
-    state = st.session_state.get("home_map")
-    points = state.selection.points if state else []
-    if points and points[0].get("location") is not None:
-        st.session_state["home_area"] = int(points[0]["location"])
-
-
+known = sel[sel["pct_vs_norm"].notna()]
+nan_areas = sel[sel["pct_vs_norm"].isna()]
 fig = px.choropleth_map(
-    sel,
+    known,
     geojson=data.geojson,
     locations="borocd",
     featureidkey="properties.BoroCD",
@@ -64,6 +60,24 @@ fig.update_traces(
     ),
     marker_line_width=0.5,
 )
+if len(nan_areas):
+    fig.add_trace(
+        go.Choroplethmap(
+            geojson=data.geojson,
+            locations=nan_areas["borocd"],
+            featureidkey="properties.BoroCD",
+            z=[0] * len(nan_areas),
+            colorscale=[[0, "#9AA0A6"], [1, "#9AA0A6"]],
+            showscale=False,
+            marker={"opacity": 0.8, "line": {"width": 0.5}},
+            customdata=nan_areas[["area", "yhat_s"]],
+            hovertemplate=(
+                "<b>%{customdata[0]}</b><br>Forecast: %{customdata[1]}<br>"
+                "No seasonal norm available<extra></extra>"
+            ),
+            name="No norm",
+        )
+    )
 fig.update_layout(
     margin={"l": 0, "r": 0, "t": 0, "b": 0},
     height=520,
@@ -73,13 +87,13 @@ st.plotly_chart(
     fig,
     theme="streamlit",
     key="home_map",
-    on_select=_on_map_select,
+    on_select=lib.on_map_select,
     selection_mode="points",
     width="stretch",
 )
 st.caption(
     "Color shows forecast demand relative to the seasonal norm (average of the same week in "
-    "prior years); red is above normal, blue below, grey means no norm is available. "
+    "prior years); red is above normal, blue below, grey means no seasonal norm is available for that area. "
     "Click a district to select it."
 )
 

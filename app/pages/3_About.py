@@ -33,10 +33,12 @@ st.markdown(
 
 st.header("The data")
 st.markdown(
-    "Public 311 records from NYC Open Data, from 2020 to the present, counted per week for each "
+    f"Public 311 records from NYC Open Data, from {lib.DATA_START_YEAR} to {data.data_through}, "
+    "counted per week for each "
     "of the city's community districts. Requests are grouped into five categories (noise, "
     "heat/hot water, illegal parking, sanitation, street conditions) plus an all-requests total. "
-    "Twelve parks and airports that have their own district code are shown as special areas."
+    f"{len(lib.SPECIAL_AREAS)} parks and airports that have their own district code are shown as "
+    "special areas."
 )
 
 st.header("The method")
@@ -65,7 +67,7 @@ st.header("Limitations")
 st.markdown(
     "- A 311 request measures reporting, not actual need.\n"
     "- Neighborhoods use 311 unevenly, so counts compare poorly across districts.\n"
-    "- The norm is based on prior years, so long-term growth in requests inflates the "
+    "- The norm is built from prior years, so long-term growth in requests can inflate the "
     "number of surge alerts.\n"
     "- The model has no weather inputs, so heat waves and storms are not anticipated."
 )

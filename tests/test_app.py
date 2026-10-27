@@ -243,3 +243,127 @@ def test_app_does_not_import_package():
         assert "nyc311" not in p.read_text().replace("NYC311_APP_DATA", "").replace(
             "nyc311-", ""
         ).replace("nyc311_", ""), p
+
+
+# ---- branch coverage -------------------------------------------------------------------
+
+
+def _rewrite(path, fn):
+    df = pd.read_parquet(path)
+    fn(df).to_parquet(path)
+
+
+def _figure_trace_names(at, key_hint=None):
+    import json
+
+    names = []
+    for el in at.get("plotly_chart"):
+        spec = json.loads(el.proto.spec)
+        names.append([t.get("name") for t in spec["data"]])
+    return names
+
+
+def test_home_empty_watch_shows_info(data_dir):
+    _rewrite(data_dir / "forecasts.parquet", lambda d: d.assign(surge_alert=False))
+    at = AppTest.from_file(str(APP / "Home.py"), default_timeout=60).run()
+    assert not at.exception
+    assert any("No districts are flagged" in i.value for i in at.info)
+
+
+def test_home_map_has_grey_layer_for_nan_areas(data_dir):
+    at = AppTest.from_file(str(APP / "Home.py"), default_timeout=60).run()
+    assert not at.exception
+    assert any("No norm" in (n or "") for n in _figure_trace_names(at)[0])
+
+
+def test_detail_shap_falls_back_to_target_then_global(data_dir):
+    _rewrite(data_dir / "shap_summary.parquet", lambda d: d[d["level"] != "area_target"])
+    at = AppTest.from_file(str(APP / "pages/1_District_Detail.py"), default_timeout=60)
+    at.query_params["area"] = "164"
+    at.query_params["target"] = "noise"
+    at.run()
+    assert not at.exception
+    assert any("all districts, Noise" in c.value for c in at.caption)
+
+
+def test_detail_shap_falls_back_to_global(data_dir):
+    _rewrite(
+        data_dir / "shap_summary.parquet",
+        lambda d: d[~d["level"].isin(["area_target", "target"])],
+    )
+    at = AppTest.from_file(str(APP / "pages/1_District_Detail.py"), default_timeout=60)
+    at.query_params["area"] = "164"
+    at.query_params["target"] = "noise"
+    at.run()
+    assert not at.exception
+    assert any("all districts and categories" in c.value for c in at.caption)
+
+
+def test_detail_shap_empty_shows_info(data_dir):
+    _rewrite(data_dir / "shap_summary.parquet", lambda d: d.iloc[0:0])
+    at = AppTest.from_file(str(APP / "pages/1_District_Detail.py"), default_timeout=60).run()
+    assert not at.exception
+    assert any("No driver summary" in i.value for i in at.info)
+
+
+def test_detail_merges_shared_labels(data_dir):
+    def swap(d):
+        d = d[d["level"] != "area_target"]
+        rows = [
+            ("area_target", 204, "total", f, 0.1 * (i + 1), i + 1)
+            for i, f in enumerate(
+                ["woy_sin", "woy_cos", "lag_1", "roll_mean_52", "covid", "n_holidays"]
+            )
+        ]
+        extra = pd.DataFrame(rows, columns=d.columns).astype(d.dtypes.to_dict())
+        return pd.concat([d, extra], ignore_index=True)
+
+    _rewrite(data_dir / "shap_summary.parquet", swap)
+    at = AppTest.from_file(str(APP / "pages/1_District_Detail.py"), default_timeout=60)
+    at.query_params["area"] = "204"
+    at.query_params["target"] = "total"
+    at.run()
+    assert not at.exception
+    import json
+
+    spec = json.loads(at.get("plotly_chart")[1].proto.spec)
+    labels = list(spec["data"][0]["y"])
+    assert len(labels) == 5 and labels.count("Time of year") == 1
+
+
+def test_map_select_callback_updates_session(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+
+    sys.path.insert(0, str(APP))
+    import lib
+
+    state = {"home_area": 204}
+    monkeypatch.setattr(lib.st, "session_state", state, raising=False)
+    sel = SimpleNamespace(selection=SimpleNamespace(points=[{"location": 164}]))
+    state["home_map"] = sel
+    lib.on_map_select()
+    assert state["home_area"] == 164
+    state["home_map"] = SimpleNamespace(selection=SimpleNamespace(points=[]))
+    lib.on_map_select()
+    assert state["home_area"] == 164
+    assert lib.area_from_selection(None) is None
+
+
+def test_detail_nan_norm_has_no_norm_trace(data_dir):
+    at = AppTest.from_file(str(APP / "pages/1_District_Detail.py"), default_timeout=60)
+    at.query_params["area"] = str(NAN_AREA)
+    at.run()
+    assert not at.exception
+    assert "Seasonal norm" not in _figure_trace_names(at)[0]
+    at = AppTest.from_file(str(APP / "pages/1_District_Detail.py"), default_timeout=60)
+    at.query_params["area"] = "204"
+    at.run()
+    assert "Seasonal norm" in _figure_trace_names(at)[0]
+
+
+def test_about_copy_derived(data_dir):
+    at = AppTest.from_file(str(APP / "pages/3_About.py"), default_timeout=60).run()
+    text = " ".join(m.value for m in at.markdown)
+    assert "to 2026-10-19" in text and "12 parks" in text
+    assert "can inflate" in text and "no weather" in text.lower()

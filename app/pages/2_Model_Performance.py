@@ -77,7 +77,6 @@ with c1:
             markers=True,
             color_discrete_map=MODEL_COLORS,
             category_orders={"Model": ORDER},
-            template="plotly_white",
         )
         fig.update_layout(
             height=360,
@@ -100,7 +99,6 @@ with c2:
             x="wape",
             y="borough",
             orientation="h",
-            template="plotly_white",
             color_discrete_sequence=[MODEL_COLORS["LightGBM"]],
         )
         fig.update_layout(
