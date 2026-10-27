@@ -4,7 +4,7 @@
 
 Four-week-ahead forecasts of weekly 311 request volume for every NYC community district, with uncertainty bands, a surge flag against each district's seasonal norm, and an honest look at where the model is weaker.
 
-**Live dashboard:** _link coming soon_
+**Live dashboard:** [nyc311-forecast.streamlit.app](https://nyc311-forecast.streamlit.app/)
 
 ## The problem
 
