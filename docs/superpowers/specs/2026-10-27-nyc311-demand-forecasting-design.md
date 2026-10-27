@@ -141,8 +141,8 @@ See `config/categories.yaml`. Categories and their responsible agencies:
 |---|---|---|
 | `noise` | NYPD / DEP | all complaint types with prefix `Noise` |
 | `heat_hot_water` | HPD | `HEAT/HOT WATER` |
-| `illegal_parking` | NYPD | `Illegal Parking`, `Blocked Driveway` |
-| `sanitation` | DSNY | `Dirty Condition`, `Missed Collection`, `Illegal Dumping`, `Residential Disposal Complaint`, `Commercial Disposal Complaint`, `Litter Basket Request`, `Overflowing Litter Baskets`, `Graffiti`, `Sanitation Condition`, `Derelict Vehicles`, `Abandoned Vehicle` |
+| `illegal_parking` | NYPD | `Illegal Parking`, `Blocked Driveway`, `Abandoned Vehicle` |
+| `sanitation` | DSNY | `Dirty Condition`, `Missed Collection`, `Illegal Dumping`, `Residential Disposal Complaint`, `Commercial Disposal Complaint`, `Litter Basket Request`, `Overflowing Litter Baskets`, `Graffiti`, `Sanitation Condition`, `Derelict Vehicles` |
 | `street_conditions` | DOT | `Street Condition`, `Street Light Condition`, `Traffic Signal Condition`, `Sidewalk Condition`, `Curb Condition`, `Broken Parking Meter` |
 
 ## 10. Risks

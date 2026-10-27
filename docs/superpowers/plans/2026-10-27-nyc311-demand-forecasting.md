@@ -115,7 +115,7 @@ Requirements:
 targets:
   noise:            {agency: "NYPD / DEP", prefixes: ["Noise"], exact: []}
   heat_hot_water:   {agency: "HPD", prefixes: [], exact: ["HEAT/HOT WATER"]}
-  illegal_parking:  {agency: "NYPD", prefixes: [], exact: ["Illegal Parking", "Blocked Driveway"]}
+  illegal_parking:  {agency: "NYPD", prefixes: [], exact: ["Illegal Parking", "Blocked Driveway", "Abandoned Vehicle"]}
   sanitation:       {agency: "DSNY", prefixes: [], exact: [<spec §9 list>]}
   street_conditions: {agency: "DOT", prefixes: [], exact: [<spec §9 list>]}
 ```
