@@ -24,7 +24,14 @@ dependencies = [
 nyc311 = "nyc311.cli:app"
 
 [dependency-groups]
-dev = ["pytest", "ruff", "nbformat", "ipykernel"]
+dev = [
+    "pytest",
+    "ruff",
+    "nbformat",
+    "ipykernel",
+    "nbconvert>=7.17.2",
+    "matplotlib>=3.11.2",
+]
 
 [build-system]
 requires = ["hatchling"]
