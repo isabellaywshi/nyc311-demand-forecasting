@@ -49,6 +49,11 @@ def train(settings: Settings) -> Path:
     return path
 
 
+def pct_vs_norm(yhat: pd.Series, norm: pd.Series) -> pd.Series:
+    """yhat / norm - 1; NaN wherever norm is NaN or not positive."""
+    return yhat / norm.where(norm > 0) - 1
+
+
 def forecast(settings: Settings, cats: Categories) -> pd.DataFrame:
     """Forecast every series at the panel's last week; add norm, % vs norm, surge, agency."""
     panel = _load_panel(settings)
@@ -58,8 +63,7 @@ def forecast(settings: Settings, cats: Categories) -> pd.DataFrame:
     targets = [origin + timedelta(weeks=h) for h in settings.horizons]
     norm = seasonal_norm(panel, origin, targets)
     fc = fc.merge(norm, on=["borocd", "target", "week_start"], how="left")
-    fc["pct_vs_norm"] = fc["yhat"] / fc["norm"] - 1
-    fc.loc[fc["norm"].isna(), "pct_vs_norm"] = float("nan")
+    fc["pct_vs_norm"] = pct_vs_norm(fc["yhat"], fc["norm"])
     fc["surge_alert"] = flag_surge(
         fc["yhat"], fc["norm"], settings.surge_threshold, settings.surge_min_norm
     )
@@ -112,10 +116,19 @@ def publish(settings: Settings, cats: Categories) -> None:
     final = Path(settings.app_data_dir)
     tmp = final.with_name(final.name + ".tmp")
     old = final.with_name(final.name + ".old")
-    for d in (tmp, old):
-        shutil.rmtree(d, ignore_errors=True)
+    shutil.rmtree(tmp, ignore_errors=True)
+    if old.exists():
+        if final.exists():
+            shutil.rmtree(old)
+        else:  # a previous swap died between its two renames: old is the only good copy
+            old.rename(final)
     panel = _load_panel(settings)
     fc = pd.read_parquet(_forecast_path(settings))
+    if pd.to_datetime(fc["origin"]).dt.date.max() != max(panel["week_start"]):
+        raise ValueError(
+            f"stale forecast: origin {fc['origin'].max()} != panel last week "
+            f"{max(panel['week_start'])}; run `nyc311 forecast` first"
+        )
     model = joblib.load(_model_path(settings))
     try:
         tmp.mkdir(parents=True)
@@ -137,7 +150,14 @@ def publish(settings: Settings, cats: Categories) -> None:
         shutil.rmtree(tmp, ignore_errors=True)
         raise
     final.parent.mkdir(parents=True, exist_ok=True)
-    if final.exists():
+    had_old = final.exists()
+    if had_old:
         final.rename(old)
-    tmp.rename(final)
+    try:
+        tmp.rename(final)
+    except BaseException:
+        if had_old:
+            old.rename(final)
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
     shutil.rmtree(old, ignore_errors=True)

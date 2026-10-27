@@ -166,3 +166,60 @@ def test_refresh_failing_at_panel_leaves_app_data_unchanged(env, monkeypatch):
     assert result.exit_code != 0
     assert {p.name for p in app_data.iterdir()} == {"meta.json", ".gitkeep"}
     assert (app_data / "meta.json").read_text() == "old"
+
+
+def test_pct_vs_norm_nan_for_nan_or_zero_norm():
+    from nyc311.publish import pct_vs_norm
+
+    out = pct_vs_norm(pd.Series([5.0, 0.0, 3.0, 4.0]), pd.Series([0.0, 0.0, np.nan, 2.0]))
+    assert out.isna().tolist() == [True, True, True, False]
+    assert not np.isinf(out.dropna()).any()
+    assert out.iloc[3] == 1.0
+
+
+def test_failed_swap_restores_app_data(env, cats, monkeypatch):
+    settings = load_settings()
+    train(settings)
+    forecast(settings, cats)
+    app_data = env / "app" / "data"
+    (app_data / "meta.json").write_text("old")
+    real = Path.rename
+
+    def flaky(self, target):
+        if self.name == "data.tmp":
+            raise OSError("boom")
+        return real(self, target)
+
+    monkeypatch.setattr(Path, "rename", flaky)
+    with pytest.raises(OSError):
+        publish(settings, cats)
+    monkeypatch.undo()
+    assert (app_data / "meta.json").read_text() == "old"
+    assert (app_data / ".gitkeep").exists()
+    assert not (env / "app" / "data.old").exists()
+
+
+def test_publish_restores_orphaned_old_dir(env, cats):
+    settings = load_settings()
+    train(settings)
+    forecast(settings, cats)
+    app_data = env / "app" / "data"
+    app_data.rename(env / "app" / "data.old")  # crashed between the two renames
+    (env / "app" / "data.old" / "meta.json").write_text("old")
+    _write_geojson(env / "raw" / "districts_raw.geojson", BOROCDS[:5])
+    with pytest.raises(ValueError):
+        publish(settings, cats)
+    assert (app_data / "meta.json").read_text() == "old"
+
+
+def test_stale_forecast_rejected(env, cats):
+    settings = load_settings()
+    train(settings)
+    forecast(settings, cats)
+    panel = pd.read_parquet(env / "processed" / "weekly_panel.parquet")
+    last = pd.to_datetime(panel["week_start"]).max()
+    panel[pd.to_datetime(panel["week_start"]) < last].to_parquet(
+        env / "processed" / "weekly_panel.parquet", index=False
+    )
+    with pytest.raises(ValueError, match="stale"):
+        publish(settings, cats)
