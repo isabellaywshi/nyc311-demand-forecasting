@@ -29,6 +29,8 @@ def run_backtest(
     reports_dir: Path | None = None,
     surge_threshold: float = 1.25,
     surge_min_norm: float = 5,
+    tags: dict[str, str] | None = None,
+    params: dict | None = None,
 ) -> pd.DataFrame:
     actuals = panel[["week_start", "borocd", "target", "count"]].rename(columns={"count": "y"})
     naive = SeasonalNaive()
@@ -61,11 +63,13 @@ def run_backtest(
         reports_dir.mkdir(parents=True, exist_ok=True)
         out.to_parquet(reports_dir / f"predictions_{period}.parquet", index=False)
     if log_mlflow:
-        _log_mlflow(out, period)
+        _log_mlflow(out, period, tags, params)
     return out
 
 
-def _log_mlflow(out: pd.DataFrame, period: str) -> None:
+def _log_mlflow(
+    out: pd.DataFrame, period: str, tags: dict[str, str] | None = None, params: dict | None = None
+) -> None:
     import os
 
     import mlflow
@@ -80,6 +84,11 @@ def _log_mlflow(out: pd.DataFrame, period: str) -> None:
     try:
         mlflow.set_tracking_uri(uri)
         with mlflow.start_run(run_name=f"backtest_{period}"):
+            mlflow.set_tag("period", period)
+            for k, v in (tags or {}).items():
+                mlflow.set_tag(k, v)
+            for k, v in (params or {}).items():
+                mlflow.log_param(k, v)
             for model, g in out.groupby("model"):
                 g = g.dropna(subset=["y", "yhat"])
                 with mlflow.start_run(run_name=str(model), nested=True):
